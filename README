@@ -1,0 +1,6 @@
+Simple Ruby script to parse iCalendar file and output worked hours spent on different projects.
+
+Usage:
+ruby worked.li.rb http://url/to/ical/
+
+Alpha code quality (at best).

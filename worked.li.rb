@@ -1,11 +1,10 @@
-require 'rubygems' # Unless you install from the tarball or zip.
+require 'rubygems' 
 require 'icalendar'
 require 'date'
 require 'open-uri'
 
-include Icalendar # Probably do this in your class to limit namespace overlap
+include Icalendar
 
-# Open a file or pass a string to the parser
 cal_url = ARGV[0]
 
 if(cal_url.nil?) 
@@ -17,44 +16,56 @@ puts "Opening calendar: "+cal_url
 
 cal_contents = web_contents  = open(cal_url) {|f| f.read }
 
-# Parser returns an array of calendars because a single file
-# can have multiple calendars.
 cals = Icalendar.parse(cal_contents)
 cal = cals.first
 
-# Now you can access the cal object in just the same way I created it
 projectHours = {}
-subprojectHours = {}
+taskHours = {}
 
 maxEnd = nil
 minStart = nil
+
+class Transaction 
+	attr_accessor :project, :task, :hours, :description
+	
+	def self.fromEvent(event)
+		ret = Transaction.new
+		ret.hours = (event.dtend - event.dtstart).to_f * 24
+		ret.project, ret.task, ret.description = parse(event.summary)
+		return ret
+	end
+	
+	def self.parse(string)
+		project, sep, task, sep, desc = string.split(/(:|\/)/)
+	
+		project = "" if project.nil?
+		task = "" if task.nil?
+		desc = "" if desc.nil?
+	
+		project = project.downcase
+		task = task.downcase unless task.nil?
+
+		return project, task, desc
+	end 
+end
 
 cal.events.each do |event|
 	maxEnd = event.dtend if maxEnd.nil? or maxEnd < event.dtend
 	minStart = event.dtstart if minStart.nil? or minStart > event.dtstart
 	
-	res = (event.dtend - event.dtstart).to_f * 24
+	t = Transaction.fromEvent(event)
 	
-	project, sep, subproject, sep, desc = event.summary.split(/(:|\/)/)
-	
-	project = "" if project.nil?
-	subproject = "" if subproject.nil?
-	desc = "" if desc.nil?
-	
-	project = project.downcase
-	subproject = subproject.downcase unless subproject.nil?
-
-	unless projectHours[project].nil? 
-		projectHours[project] += res 
+	unless projectHours[t.project].nil? 
+		projectHours[t.project] += t.hours 
 	else 
-		projectHours[project] = res 
-		subprojectHours[project] = {}
+		projectHours[t.project] = t.hours 
+		taskHours[t.project] = {}
 	end
 
-	unless subprojectHours[project][subproject].nil? 
-		subprojectHours[project][subproject] += res 
+	unless taskHours[t.project][t.task].nil? 
+		taskHours[t.project][t.task] += t.hours 
 	else 
-		subprojectHours[project][subproject] = res 
+		taskHours[t.project][t.task] = t.hours 
 	end
 end
 
@@ -62,8 +73,8 @@ total = 0
 projectHours.each do |key, val|
 	total += val
 	puts key + ": " + val.to_s
-	subprojectHours[key].each do |subproject, val|
-		puts "  - " + (subproject.nil? or subproject == "" ? "else" : subproject) + ": " + val.to_s
+	taskHours[key].each do |task, val|
+		puts "  - " + (task.nil? or task == "" ? "else" : task) + ": " + val.to_s
 	end
 end
 

@@ -69,7 +69,11 @@ end
 
 numDays = (maxEnd - minStart).to_i;
 numDays -= (numDays / 7) * 2
-puts minStart.to_s + " to " + maxEnd.to_s
-puts "" + numDays.to_s + " days"
-puts "" + total.to_s + " hours"
-puts "" + (total / numDays).to_s + " hrs/day" 
+numWeeks = (maxEnd.cweek - minStart.cweek)
+
+puts "#{minStart} to #{maxEnd}"
+puts "#{numDays} days, #{numWeeks} weeks"
+puts "#{total} hours"
+puts "#{total / numDays} hrs/day" 
+puts "#{total / numWeeks} hrs/week" 
+
